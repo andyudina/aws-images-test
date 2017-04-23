@@ -1,8 +1,12 @@
+import io
+
 import pgpy
 
 from aws_test import settings
+from aws_test.utils import \
+    store_data_at_s3, \
+    encrypt_file_with_pgp
 from .base import BaseSetupCommand
-
 
 class Command(
         BaseSetupCommand):
@@ -33,17 +37,11 @@ class Command(
             options['pgp_key'])
 
         self.verbose('Encrypt image')
-        encrypted_image = self.encrypt_image(
-            options['image'], pgp_key_file)
-        
+        with open(options['image'], 'r') as image_file:
+            encrypted_image = encrypt_file_with_pgp(
+                image_file, pgp_key_file)
         self.verbose('Store image in s3')
-        s3_bucket_key = self.store_data_at_s3(
-            encrypted_image, settings.IMAGE_BUCKET, 'image')
+        s3_bucket_key = store_data_at_s3(
+            io.BytesIO(encrypted_image), 
+            settings.IMAGE_BUCKET, 'image')
         self.stdout.write(s3_bucket_key)
-
-    def encrypt_image(self, image_file_path, pgp_key):
-        """
-        Encrypt image with pgp key from file
-        """
-        return pgp_key.encrypt(
-            pgpy.PGPMessage.new(image_file_path, file=True))

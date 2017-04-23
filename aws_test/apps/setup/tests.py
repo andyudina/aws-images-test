@@ -4,20 +4,20 @@ Doing basic smoke-like checks that everything is working as expected
 (And completely omits checks of behaviour in non-expected cases.)
 """
 import io
+from unittest import TestCase
 from unittest.mock import patch, MagicMock
 
 import boto3
 from django.core.management import call_command
-from django.test import TestCase
 from django.utils.six import StringIO
-import pgpy
 
 from aws_test import settings
 from aws_test.utils import generate_random_string, \
     generate_pgp_key_pair, \
     save_str_to_file, \
     download_data_from_s3, \
-    decrypt_with_kms
+    decrypt_with_kms, \
+    decrypt_file_with_pgp
 
 
 class UploadImageTest(TestCase):
@@ -61,7 +61,7 @@ class UploadImageTest(TestCase):
                      self.data_file, self.pgp_key_file, **kwargs)
 
     @patch('aws_test.apps.setup.management.commands.'
-           'upload_image.Command.store_data_at_s3')
+           'upload_image.store_data_at_s3')
     def test_image_is_encrypted(self, store_data_at_s3_mock):
         """
         Test that file to be stored in s3 bucket 
@@ -72,24 +72,28 @@ class UploadImageTest(TestCase):
         self.run_upload_image_command()
         self.assertTrue(
             store_data_at_s3_mock.called)
+        # get encrypted message
         args, _ = store_data_at_s3_mock.call_args
         encrypted_data = args[0]
-        decrypted_message = self.pgp_private_key.decrypt(
-            encrypted_data)
+        # try decrypt message
+        decrypted_message = \
+            decrypt_file_with_pgp(
+                encrypted_data, # store_data_at_s3 accepts file obj
+                self.pgp_private_key)
         # check data was correctly encrypted
         self.assertEqual(
-            self.raw_data, decrypted_message.message)
+            self.raw_data, decrypted_message)
 
     @patch('aws_test.apps.setup.management.commands.'
-           'upload_image.Command.encrypt_image')
-    def test_file_is_successfully_stored(self, encrypt_image_mock):
+           'upload_image.encrypt_file_with_pgp')
+    def test_file_is_successfully_stored(self, encrypt_file_with_pgp_mock):
         """
         Test that file is successfully stored in S3 and can be retrieved
         """
         # disable side effects
         # shouldn't fail here if encryption doesn't work
         STR_TO_STORE = b'Test'
-        encrypt_image_mock.return_value = io.BytesIO(STR_TO_STORE)
+        encrypt_file_with_pgp_mock.return_value = STR_TO_STORE
         # catch output
         out = StringIO()
         self.run_upload_image_command(stdout=out)
@@ -133,7 +137,7 @@ class SetupKeysTest(TestCase):
     @patch('aws_test.apps.setup.management.commands.'
            'setup_keys.Command.store_public_key_local')
     @patch('aws_test.apps.setup.management.commands.'
-           'setup_keys.Command.store_data_at_s3')
+           'setup_keys.store_data_at_s3')
     def test_encrypt_with_kms(self,
                               store_data_at_s3_mock, 
                               store_public_key_local_mock):
@@ -154,8 +158,9 @@ class SetupKeysTest(TestCase):
         # check encrypted data can be decrypted
         # and is equal decrypted provate key
         encrypted_data = args[0]
+        # store_data accepts BytesIO obj
         decrypted_data = decrypt_with_kms(
-            encrypted_data)
+            encrypted_data.read())
         # data is returned in binary format
         self.assertEqual(
             decrypted_data, self.test_private_key.encode())
@@ -163,7 +168,7 @@ class SetupKeysTest(TestCase):
     @patch('aws_test.apps.setup.management.commands.'
            'setup_keys.Command.store_public_key_local')
     @patch('aws_test.apps.setup.management.commands.'
-           'setup_keys.Command.encrypt_with_kms')
+           'setup_keys.encrypt_with_kms')
     def test_private_key_is_succesfully_stored(
             self, encrypt_with_kms_mock, store_public_key_local_mock):
         """
@@ -171,8 +176,8 @@ class SetupKeysTest(TestCase):
         """
         # disable side effects
         store_public_key_local_mock.return_value = None
-        encrypt_with_kms_mock.return_value = io.BytesIO(
-            self.test_private_key.encode())
+        encrypt_with_kms_mock.return_value = \
+            self.test_private_key.encode()
         # catch output
         out = StringIO()
         self.run_setup_keys_command(stdout=out)

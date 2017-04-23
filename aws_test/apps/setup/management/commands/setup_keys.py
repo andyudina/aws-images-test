@@ -1,10 +1,14 @@
+import io
+
 import boto3
 from django.core.management.base import BaseCommand
 
 from aws_test import settings
 from aws_test.utils import \
     generate_pgp_key_pair, \
-    save_str_to_file
+    save_str_to_file, \
+    encrypt_with_kms, \
+    store_data_at_s3
 from .base import BaseSetupCommand
 
 
@@ -35,18 +39,9 @@ class Command(BaseSetupCommand):
         """
         Encrypt private key with kms ans store to S3
         """
-        private_key_ecrypted = self.encrypt_with_kms(private_key)
-        gpg_bucket_key = self.store_data_at_s3(
-            private_key_ecrypted, settings.PGP_KEY_BUCKET, 'gpg-key')
+        private_key_encrypted = encrypt_with_kms(private_key)
+        gpg_bucket_key = store_data_at_s3(
+            io.BytesIO(private_key_encrypted),
+            settings.PGP_KEY_BUCKET, 'gpg-key')
         self.stdout.write(gpg_bucket_key)
 
-    def encrypt_with_kms(self, private_key):
-        """
-        Wrapper for boot3 KMS encryption api
-        """
-        kms = boto3.client('kms')
-        response = kms.encrypt(
-            KeyId=settings.KMS_KEY_ID,
-            # pass data as bytes
-            Plaintext=private_key)
-        return response['CiphertextBlob']

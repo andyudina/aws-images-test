@@ -5,20 +5,21 @@ Stores business logic of pgp keys and safe images manipulation
 from aws_test import settings
 from aws_test.utils import download_data_from_s3, \
     decrypt_with_kms, \
-    construct_private_key_from_str
+    construct_private_key_from_str, \
+    decrypt_with_pgp
 
 
-class SaveImage:
+class SafeImage:
     """
     Incapsulates image related business logic
-    Retrieves and decrypts image bu s3 bucket key
+    Retrieves and decrypts image by s3 bucket key
     """
 
     DEFAULT_CONTENT_TYPE = 'image/jpeg'
 
     def __init__(self, bucket):
         assert(bucket,
-            'Bucket should not be none')
+               'Bucket should not be none')
         self._bucket = bucket
         self._pgp_key = PGPKey()
 
@@ -44,9 +45,9 @@ class PGPKey:
 
     def decrypt_data(self, data):
         ecrypted_private_key = self._load_key_from_s3()
-        private_key_str = decrypt_key_with_kms(ecrypted_private_key)
+        private_key_str = decrypt_with_kms(ecrypted_private_key)
         private_key = construct_private_key_from_str(private_key_str)
-        return private_key.decrypt(data)
+        return decrypt_with_pgp(data, private_key)
 
     def _load_key_from_s3(self):
         """
