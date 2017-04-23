@@ -28,6 +28,7 @@ class VerboseMixin:
             return
         print(msg)
 
+
 class S3StoreMixin:
     """
     Helper for storing data to s3

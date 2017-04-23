@@ -4,7 +4,7 @@ Doing basic smoke-like checks that everything is working as expected
 (And completely omits checks of behaviour in non-expected cases.)
 """
 import io
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 import boto3
 from django.core.management import call_command
@@ -15,7 +15,9 @@ import pgpy
 from aws_test import settings
 from aws_test.utils import generate_random_string, \
     generate_pgp_key_pair, \
-    save_str_to_file
+    save_str_to_file, \
+    download_data_from_s3, \
+    decrypt_with_kms
 
 
 class UploadImageTest(TestCase):
@@ -28,9 +30,6 @@ class UploadImageTest(TestCase):
         """
         Generate dummy public key file and image file in /tmp dif
         """
-        # set up aws client
-        self.s3 = boto3.client('s3')
-
         # generate raw data to store
         self.raw_data = generate_random_string(length=20)
         self.data_file = self.get_full_path(
@@ -58,10 +57,10 @@ class UploadImageTest(TestCase):
         """
         Helper for running upload image command
         """
-        call_command('upload_image', 
-            self.data_file, self.pgp_key_file, **kwargs)
+        call_command('upload_image',
+                     self.data_file, self.pgp_key_file, **kwargs)
 
-    @patch('aws_test.apps.setup.management.commands.'\
+    @patch('aws_test.apps.setup.management.commands.'
            'upload_image.Command.store_data_at_s3')
     def test_image_is_encrypted(self, store_data_at_s3_mock):
         """
@@ -77,11 +76,11 @@ class UploadImageTest(TestCase):
         encrypted_data = args[0]
         decrypted_message = self.pgp_private_key.decrypt(
             encrypted_data)
+        # check data was correctly encrypted
         self.assertEqual(
             self.raw_data, decrypted_message.message)
 
-
-    @patch('aws_test.apps.setup.management.commands.'\
+    @patch('aws_test.apps.setup.management.commands.'
            'upload_image.Command.encrypt_image')
     def test_file_is_successfully_stored(self, encrypt_image_mock):
         """
@@ -96,12 +95,12 @@ class UploadImageTest(TestCase):
         self.run_upload_image_command(stdout=out)
         # get data from bucket
         s3_key = out.getvalue().strip()
-        response = self.s3.get_object(
-            Bucket=settings.IMAGE_BUCKET,
-            Key=s3_key)
+        stored_data = download_data_from_s3(
+            settings.IMAGE_BUCKET, s3_key)
+        # check data stored successfully
         self.assertEqual(
-            response['Body'].read(), STR_TO_STORE)
-    
+            stored_data, STR_TO_STORE)
+
 
 class SetupKeysTest(TestCase):
     """
@@ -109,18 +108,93 @@ class SetupKeysTest(TestCase):
     Check that keys is uploaded successfully
     """
 
-    def test_encrypt_with_kms(self):
+    def setUp(self):
+        self.test_private_key = 'Test private'
+        self.test_public_key = 'Test public'
+        # patch keys generation
+        self.patch_key_generator()
+        self.addCleanup(
+            self.generate_gpg_keys_patcher.stop)
+
+    def patch_key_generator(self):
+        self.generate_gpg_keys_patcher = patch(
+            'aws_test.apps.setup.management.commands.'
+            'setup_keys.generate_pgp_key_pair')
+        self.generate_gpg_keys_mock = self.generate_gpg_keys_patcher.start()
+        self.generate_gpg_keys_mock.return_value = \
+            return_value=(self.test_private_key, self.test_public_key)
+
+    def run_setup_keys_command(self, **kwargs):
+        """
+        Helper for running setup_keys command
+        """
+        call_command('setup_keys', **kwargs)
+
+    @patch('aws_test.apps.setup.management.commands.'
+           'setup_keys.Command.store_public_key_local')
+    @patch('aws_test.apps.setup.management.commands.'
+           'setup_keys.Command.store_data_at_s3')
+    def test_encrypt_with_kms(self,
+                              store_data_at_s3_mock, 
+                              store_public_key_local_mock):
         """
         Test pgp key are encrypted successfully.
         Encrypt key with kms, then decrypt and compare
         """
+        # disable not needed side effects
+        store_public_key_local_mock.return_value = None
+        # needs smth printable to stdout
+        store_data_at_s3_mock.return_value = ''
 
-    def test_private_key_is_succesfully_stored(self):
+        self.run_setup_keys_command()
+        # check store was called
+        self.assertTrue(
+            store_data_at_s3_mock.called)
+        args, _ = store_data_at_s3_mock.call_args
+        # check encrypted data can be decrypted
+        # and is equal decrypted provate key
+        encrypted_data = args[0]
+        decrypted_data = decrypt_with_kms(
+            encrypted_data)
+        # data is returned in binary format
+        self.assertEqual(
+            decrypted_data, self.test_private_key.encode())
+
+    @patch('aws_test.apps.setup.management.commands.'
+           'setup_keys.Command.store_public_key_local')
+    @patch('aws_test.apps.setup.management.commands.'
+           'setup_keys.Command.encrypt_with_kms')
+    def test_private_key_is_succesfully_stored(
+            self, encrypt_with_kms_mock, store_public_key_local_mock):
         """
         Test that key file is successfully stored in S3 and can be retrieved
         """
+        # disable side effects
+        store_public_key_local_mock.return_value = None
+        encrypt_with_kms_mock.return_value = io.BytesIO(
+            self.test_private_key.encode())
+        # catch output
+        out = StringIO()
+        self.run_setup_keys_command(stdout=out)
+        s3_key = out.getvalue().strip()
+        # check data is saved to s3
+        stored_key = download_data_from_s3(
+            settings.PGP_KEY_BUCKET, s3_key)
+        # data is returned in binary format
+        self.assertEqual(
+            stored_key, self.test_private_key.encode())
 
-    def test_public_key_is_successfully_stored(self):
+    @patch('aws_test.apps.setup.management.commands.'
+           'setup_keys.Command.store_private_key_aws')
+    def test_public_key_is_successfully_stored(
+            self, store_private_key_aws_mock):
         """
         Test that public key is successfully stored locally
         """
+        # disable side effects
+        store_private_key_aws_mock.return_value = None
+        self.run_setup_keys_command()
+        # checked key is saved locally
+        with open(settings.PGP_PUBLIC_KEY_FILEPATH, 'r') as key_file:
+            self.assertEqual(
+                key_file.read(), self.test_public_key)

@@ -5,11 +5,10 @@ from aws_test import settings
 from aws_test.utils import \
     generate_pgp_key_pair, \
     save_str_to_file
-from .base import VerboseMixin
+from .base import BaseSetupCommand
 
 
-class Command(
-        VerboseMixin, BaseCommand):
+class Command(BaseSetupCommand):
     """
     Creates pgp key pair, encrypts pgp private key pair with KMS
     And uploads it to the server
@@ -21,8 +20,8 @@ class Command(
     def handle(self, *args, **options):
         self._verbose = options['verbose']
         private_key, public_key = generate_pgp_key_pair()
-        self.store_public_key_local(public_key)
-        self.store_private_key_aws(private_key)
+        self.store_public_key_local(str(public_key))
+        self.store_private_key_aws(str(private_key))
 
     def store_public_key_local(self, public_key):
         """
@@ -37,9 +36,9 @@ class Command(
         Encrypt private key with kms ans store to S3
         """
         private_key_ecrypted = self.encrypt_with_kms(private_key)
-        self.store_data_at_s3(
-            private_key_ecrypted, setting.GPG_KEY_BUCKET, 'gpg-key')
-        self.store_key_to_s3(private_key_ecrypted)
+        gpg_bucket_key = self.store_data_at_s3(
+            private_key_ecrypted, settings.PGP_KEY_BUCKET, 'gpg-key')
+        self.stdout.write(gpg_bucket_key)
 
     def encrypt_with_kms(self, private_key):
         """
@@ -49,5 +48,5 @@ class Command(
         response = kms.encrypt(
             KeyId=settings.KMS_KEY_ID,
             # pass data as bytes
-            data=private_key.message.encode())
+            Plaintext=private_key)
         return response['CiphertextBlob']

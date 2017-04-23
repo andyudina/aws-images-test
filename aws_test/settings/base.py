@@ -128,5 +128,6 @@ STATIC_URL = '/static/'
 
 IMAGE_BUCKET = 'pgp-image-test-ur41389duc'
 PGP_KEY_BUCKET = 'pgp-key-bucket-ifkneounb3'
-KMS_KEY_ID = ''
+KMS_KEY_ID = '0b8baec0-69e2-465e-b63b-01926b93c9bb'
 PGP_PUBLIC_KEY_FILEPATH = os.path.join(BASE_DIR, 'pgp_key.pub')
+PGP_S3_KEY = ''

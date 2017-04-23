@@ -31,9 +31,11 @@ class Command(
         self.verbose('Load pgp key')
         pgp_key_file, _ = pgpy.PGPKey.from_file(
             options['pgp_key'])
+
         self.verbose('Encrypt image')
         encrypted_image = self.encrypt_image(
             options['image'], pgp_key_file)
+        
         self.verbose('Store image in s3')
         s3_bucket_key = self.store_data_at_s3(
             encrypted_image, settings.IMAGE_BUCKET, 'image')
@@ -45,4 +47,3 @@ class Command(
         """
         return pgp_key.encrypt(
             pgpy.PGPMessage.new(image_file_path, file=True))
-
