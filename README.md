@@ -16,8 +16,8 @@ On endpoint request we decrypt pgp key, get enrypted image from s3 bucket, decry
 - AWS KMS is used for key management
 
 ### Roadmap
-- Setup amazon S3 and KMI
-- Store image and upload PGP key
+- Encrypt image with PGP and store in S3
+- Encrypt PGP key by KMS key and store in anither S3 bucket
 - Lambda for endpoint 
 - Set up API-GW and deploy lamda
 - Write usage HOW-TO
