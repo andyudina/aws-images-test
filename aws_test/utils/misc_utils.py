@@ -16,3 +16,18 @@ def save_str_to_file(str_to_save, file_path):
     """
     with open(file_path, 'w') as f:
         f.write(str_to_save)
+
+
+def to_bytes(data):
+    """
+    Graceful (kind of) convertation to bytes
+    Accepts str or bytes data
+    """
+    assert(
+        isinstance(data, str) or isinstance(data, bytes),
+        'Data should be bytes or str')
+
+    if isinstance(data, str):
+        return data.encode()
+    else:
+        return data

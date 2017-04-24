@@ -3,21 +3,20 @@ Functional tests of safe image logic.
 WARNING: tests only ideal scenario (kind of smoke)
 Cover exceptions with test (like bucket does not exist) before go to prod.
 
-TODO: modules heavily depend on utils. 
+TODO: modules heavily depend on utils.
 Cover utils with units befre go to prod
 """
 import io
 from unittest import TestCase, skip
 from unittest.mock import patch, PropertyMock
 
-from django.test import Client
-
 from aws_test import settings
 from aws_test.utils import \
     generate_pgp_key_pair, \
     encrypt_file_with_pgp, \
     encrypt_with_kms, \
-    store_data_at_s3
+    store_data_at_s3, \
+    generate_random_string
 from .models import PGPKey, SafeImage
 
 
@@ -41,7 +40,7 @@ class SetupEnvMixin:
         Encrypt private key with AWS KMS and save to S3
         Encrypt image with public key and save to S3
         """
-        self.raw_image = self._generate_random_jpeg()
+        self.raw_image = self._generate_random_byte_data()
         private_key, public_key = generate_pgp_key_pair()
         self.pgp_s3_key = self.prepare_key(str(private_key))
         self.image_s3_key, self.encrypted_image = \
@@ -65,14 +64,9 @@ class SetupEnvMixin:
             encrypted_image)
         return (image_bucket, encrypted_image)
 
-    def _generate_random_jpeg(self):
-        import numpy
-        from PIL import Image
+    def _generate_random_byte_data(self):
+        return generate_random_string().encode()
 
-        imarray = numpy.random.rand(
-            IMAGE_HEIGHT, IMAGE_WIDTH, COLORS_NUMBER) * 255
-        return Image.fromarray(
-            imarray.astype('uint8')).convert(COLOR_SCHEMA).tobytes()
 
     def _save_key_to_bucket(self, data):
         return store_data_at_s3(
@@ -162,6 +156,8 @@ class SaveImageViewTest(BaseTestCase):
         """
         Wrapper for our image api endpoint
         """
+        from django.test import Client
+
         client = Client()
         return client.get(
             self.construct_image_url())
