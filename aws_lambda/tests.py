@@ -11,6 +11,9 @@ from aws_test.apps.api.tests import BaseTestCase
 from aws_lambda.handler import get_image
 
 
+JPEG_IMAGE_CONTENT_TYPE = 'image/jpeg'
+
+
 class ImageLambdaHandlerTest(BaseTestCase):
     """
     Test image can be retrieved by handler
@@ -35,6 +38,17 @@ class ImageLambdaHandlerTest(BaseTestCase):
         self.assertEqual(
             response['image'],
             self.raw_image)
+
+    def test_retrieve_image__valid_content_type(self):
+        """
+        Test expected image returned
+        """
+        response = get_image(
+            self.construct_event_for_handler(),
+            self.construct_context_for_handler())
+        self.assertEqual(
+            response['headers']['Content-Type'],
+            JPEG_IMAGE_CONTENT_TYPE)
 
     def test_retrieve_image__not_passed_bucket_key(self):
         """
