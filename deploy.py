@@ -80,7 +80,7 @@ def cleanup_old_versions(src, keep_last_versions):
                                                               e.message))
 
 
-def deploy(src, local_package=None):
+def deploy(local_package=None):
     """Deploys a new function to AWS Lambda.
 
     :param str src:
@@ -191,6 +191,11 @@ def build(src, local_package=None):
     output_filename = "{0}-{1}.zip".format(timestamp(), function_name)
 
     path_to_temp = mkdtemp(prefix='aws-lambda')
+    os.mkdir(os.path.join(path_to_temp, 'lib'))
+    os.mkdir(os.path.join(path_to_temp, 'lib', 'python')) 
+    print(path_to_temp)
+    print(os.path.join(path_to_temp, 'lib'))
+    print(os.path.join(path_to_temp, 'lib', 'python'))
     pip_install_to_target(path_to_temp, cfg, local_package)
 
     # Gracefully handle whether ".zip" was included in the filename or not.
@@ -280,6 +285,7 @@ def pip_install_to_target(path, cfg, local_package=None):
             r = r.replace('-e ','')
 
         print('Installing {package}'.format(package=r))
+        print(path)
         pip.main(['install', r, '-t', path, '--ignore-installed'])
 
     f.close()
@@ -314,8 +320,6 @@ def create_function(cfg, path_to_zip_file):
 
     print("Creating your new Lambda function")
     byte_stream = read(path_to_zip_file)
-    print(path_to_zip_file)
-    return
 
     aws_access_key_id = cfg.get('aws_access_key_id')
     aws_secret_access_key = cfg.get('aws_secret_access_key')
@@ -326,7 +330,7 @@ def create_function(cfg, path_to_zip_file):
     client.create_function(
         FunctionName=cfg.get('function_name'),
         Runtime=cfg.get('runtime', 'python2.7'),
-        Role=role,
+        Role='arn:aws:iam::202913470273:role/lambda_image_test',
         Handler=cfg.get('handler'),
         Code={'ZipFile': byte_stream},
         Description=cfg.get('description'),
@@ -358,7 +362,7 @@ def update_function(cfg, path_to_zip_file):
 
     client.update_function_configuration(
         FunctionName=cfg.get('function_name'),
-        Role=role,
+        Role='arn:aws:iam::202913470273:role/lambda_image_test',
         Handler=cfg.get('handler'),
         Description=cfg.get('description'),
         Timeout=cfg.get('timeout', 15),
@@ -387,7 +391,7 @@ def mkdir(path):
 
 
 def read(path, loader=None):
-    with open(path) as fh:
+    with open(path, 'rb') as fh:
         if not loader:
             return fh.read()
         return loader(fh.read())
@@ -407,3 +411,11 @@ def archive(src, dest, filename):
 def timestamp(fmt='%Y-%m-%d-%H%M%S'):
     now = dt.datetime.utcnow()
     return now.strftime(fmt)
+
+if __name__ == '__main__':
+    src = os.path.dirname(os.path.realpath(__file__))
+    path_to_config_file = os.path.join(src, 'config.yaml')
+    cfg = read(path_to_config_file, loader=yaml.load)
+    update_function(cfg, 
+        '/home/ec2-user/aws-images-test/aws-test-zip.zip')
+    #deploy(src)

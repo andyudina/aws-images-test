@@ -8,7 +8,7 @@ Cover utils with units befre go to prod
 """
 import io
 from unittest import TestCase, skip
-from unittest.mock import patch, PropertyMock
+from mock import patch, PropertyMock
 
 from aws_test import settings
 from aws_test.utils import \
