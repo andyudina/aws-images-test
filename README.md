@@ -25,3 +25,7 @@ On endpoint request we decrypt pgp key, get enrypted image from s3 bucket, decry
 - Setuo architecture with Terraform
 - Find or write reliable install tools
 - Build pipeline for building (custom) C modules
+
+## AWS Tips
+Use Content-Type and Accept headers to get binary data:
+curl --request GET -H "Accept: image/jpeg" -H "Content-Type: image/jpeg" https://9os3hi1h6c.execute-api.eu-central-1.amazonaws.com/SafeImage/image/image-YVHJMQXU7J  > test.jpeg
