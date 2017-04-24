@@ -11,19 +11,25 @@ gen
 # Python, saas, mac files
 *.*~
 *~
+env
 *.DS_Store
 .DS_Store
 .sass-cache
+
+# Extensions forbidden in this repo
 *csv
 *sql
-
 *out
 *log
-env
-media
 *.html
 *pub
 *jpg
 *zip
+
+# Dirs with production-only content
+media
 dist
+
+# AWS Lamda deploy elated
 config.yaml
+deploy.py # yup, wipe this trash out of repo
