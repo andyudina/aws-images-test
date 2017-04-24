@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand
 from aws_test.utils import generate_random_string
 
 
-class VerboseMixin:
+class VerboseMixin(object):
     """
     Helper for verbose messages in management commands
     """

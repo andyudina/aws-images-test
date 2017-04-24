@@ -7,7 +7,7 @@ Shouldn't be always so
 import unittest
 
 from aws_test.apps.api.tests import BaseTestCase
-from aws_test.utils import to_bytes
+from aws_test.utils import bytes_to_base64_str
 from aws_image_lambda.handler import get_image
 
 
@@ -36,8 +36,8 @@ class ImageLambdaHandlerTest(BaseTestCase):
             self.construct_event_for_handler(),
             self.construct_context_for_handler())
         self.assertEqual(
-            to_bytes(response['image']),
-            self.raw_image)
+            response['image'],
+            bytes_to_base64_str(self.raw_image))
 
     def test_retrieve_image__valid_content_type(self):
         """

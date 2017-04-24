@@ -417,5 +417,5 @@ if __name__ == '__main__':
     path_to_config_file = os.path.join(src, 'config.yaml')
     cfg = read(path_to_config_file, loader=yaml.load)
     update_function(cfg, 
-        '/home/ec2-user/aws-images-test/aws-test-zip.zip')
+        '/home/ec2-user/aws-images-test/aws-image-test.zip')
     #deploy(src)

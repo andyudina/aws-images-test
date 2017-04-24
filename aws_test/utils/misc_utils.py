@@ -1,8 +1,16 @@
 """
 Miscelaneous utils
 """
+import base64
 import random
 import string
+
+
+def bytes_to_base64_str(data):
+    """
+    Convert bytes to base64 string
+    """
+    return base64.b64encode(data).decode()
 
 
 def generate_random_string(length=10):

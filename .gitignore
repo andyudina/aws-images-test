@@ -11,7 +11,6 @@ gen
 # Python, saas, mac files
 *.*~
 *~
-*.pyc
 *.DS_Store
 .DS_Store
 .sass-cache
@@ -24,5 +23,7 @@ env
 media
 *.html
 *pub
+*jpg
+*zip
 dist
 config.yaml
