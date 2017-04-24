@@ -21,7 +21,8 @@ class ImageLambdaHandlerTest(BaseTestCase):
 
     def construct_event_for_handler(self):
         return {
-            'bucket_key': self.image_s3_key
+            'pathParameters': {
+                'bucket_key': self.image_s3_key}
         }
 
     def construct_context_for_handler(self):

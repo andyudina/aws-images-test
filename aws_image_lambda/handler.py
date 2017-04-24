@@ -8,10 +8,10 @@ SUCCESS_STATUS_CODE = 200
 def get_image(event, context):
     """
     Lambda hadler for retrieving image.
-    Expects s3 bucket key to be passed at event['bucket_key'].
+    Expects s3 bucket key to be passed at event['pathParameters']['bucket_key'].
     """
     try:
-        bucket_key = event['bucket_key']
+        bucket_key = event['pathParameters']['bucket_key']
     except KeyError:
         return _error('No bucket key')
     image = SafeImage(bucket_key).retrieve()
