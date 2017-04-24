@@ -23,3 +23,4 @@ On endpoint request we decrypt pgp key, get enrypted image from s3 bucket, decry
 - Write usage HOW-TO
 - Setuo architecture with Terraform
 - Find or write reliable install tools
+- Build pipeline for custom modules
