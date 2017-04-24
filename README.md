@@ -22,3 +22,4 @@ On endpoint request we decrypt pgp key, get enrypted image from s3 bucket, decry
 - Set up API-GW and deploy lamda
 - Write usage HOW-TO
 - Setuo architecture with Terraform
+- Find or write reliable install tools
