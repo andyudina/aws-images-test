@@ -25,3 +25,4 @@ media
 *.html
 *pub
 dist
+config.yaml
