@@ -8,7 +8,7 @@ Serves encrypted image from /image/s3-bucket-image-key endpoint.
 Stores arbitrary test encrypted image in S3 bucket [see upload_image management command](https://github.com/andyudina/aws-images-test/blob/master/aws_test/apps/setup/management/commands/upload_image.py)
 Image is encrypted with pgp. PGP private key itself is encrypted by AES and stored in another S3 bucket. [see setup_keys management commands](https://github.com/andyudina/aws-images-test/blob/master/aws_test/apps/setup/management/commands/setup_keys.py)
 On endpoint request we decrypt pgp key, get enrypted image from s3 bucket, decrypt it with key and then return its to client.
-[See handler](https://github.com/andyudina/aws-images-test/blob/master/aws_image_lambda/handler.py)
+[See AWS Lambda handler](https://github.com/andyudina/aws-images-test/blob/master/aws_image_lambda/handler.py)
 
 ### Infrastructure tips
 - API is hosted with AWS API Gateaway service
