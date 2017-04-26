@@ -28,6 +28,21 @@ IMAGE_WIDTH = 100
 COLORS_NUMBER = 3
 COLOR_SCHEMA = 'RGBA'
 
+image_access_policy = \
+"""
+{
+  "Version": "%s",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+      ],
+      "Resource": ["arn:aws:s3:::%s/%s"]
+    }
+  ]
+}
+"""
 
 class SetupEnvMixin:
     """
@@ -46,6 +61,37 @@ class SetupEnvMixin:
         self.image_s3_key, self.encrypted_image = \
             self.prepare_image(
                 io.BytesIO(self.raw_image), public_key)
+        self.session_token = self.generate_session_token()
+
+    def generate_session_token(self):
+        """
+        Helper for generating session_token
+        Uses AssumeRole
+        As role takes perdefined string (TODO: how to store)
+        Specifies permissions only for current bucket key.
+
+        Why this should work: aws lets access
+        only if both policies are matched
+        User with one access token can't access others card images
+        """
+        client = boto3.client('sts')
+        response = client.assume_role(
+            RoleArn=settings.DEFAULT_IMAGE_BUCKET_ARN,
+            RoleSessionName='role-session-name-%s' % self.image_s3_key,
+            Policy=self.genearte_policy_for_current_key(),
+            DurationSeconds=settings.MIN_DURATION_POSSIBLE)
+        return response['Credentials']['SessionToken']
+
+    def genearate_policy_for_current_key():
+        """
+        Helper for policy string generation
+        """
+        import datetime
+
+        return image_access_policy % (
+                datetime.datetime.now().date(),
+                settings.IMAGE_BUCKET,
+                self.image_s3_key)
 
     def prepare_key(self, private_key):
         """

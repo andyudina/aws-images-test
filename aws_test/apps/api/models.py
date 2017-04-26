@@ -17,25 +17,33 @@ class SafeImage:
 
     DEFAULT_CONTENT_TYPE = 'image/jpeg'
 
-    def __init__(self, bucket):
-        assert(bucket,
-               'Bucket should not be none')
-        self._bucket = bucket
-        self._pgp_key = PGPKey()
+    def __init__(self, session_key):
+        import boto3
+
+        assert session_key,
+               'Session key should not be none'
+
+        self.encrypted_image_s3 = boto3.client(
+            aws_session_token=session_key)
+        self.pgp_key = PGPKey()
 
     def retrieve(self):
         """
         Load and decrypt image from bucket
         """
         encrypted_image = self._load_image_from_s3()
-        return self._pgp_key.decrypt_data(encrypted_image)
+        return self.pgp_key.decrypt_data(encrypted_image)
 
-    def _load_image_from_s3(self):
+    def _load_image_from_s3(self, bucket):
         """
         Wrapper on s3 download api
         """
+        assert bucket,
+               'Bucket should not be none'
+
         return download_data_from_s3(
-            settings.IMAGE_BUCKET, self._bucket)
+            self.encrypted_image_s3,
+            settings.IMAGE_BUCKET, bucket)
 
 
 class PGPKey:

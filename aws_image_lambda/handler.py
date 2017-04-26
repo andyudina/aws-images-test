@@ -1,31 +1,56 @@
+from botocore.exceptions import ClientError
+
 from aws_test.apps.api.models import SafeImage
 from aws_test.utils import bytes_to_base64_str
 
 
 SUCCESS_STATUS_CODE = 200
-
+NON_AUTHORIZED_STATUS_CODE = 401
+BAD_REQUEST_ERROR = 400
 
 def get_image(event, context):
     """
     Lambda hadler for retrieving image.
     Expects s3 bucket key to be passed at event['pathParameters']['bucket_key'].
+    And session key in headers event['headers']['s3-session-token']
     """
     try:
         bucket_key = event['pathParameters']['bucket_key']
     except KeyError:
-        return _error('No bucket key')
-    image = SafeImage(bucket_key).retrieve()
+        return _bad_request_error('No bucket key')
+    try:
+        session_token = event['headers']['s3-session-token']
+    except KeyError:
+        return _non_authorized_error(
+            'Not enough credentials to authorize')
+    try:
+        image = SafeImage(session_token).retrieve(bucket_key)
+    except ClientError as e:
+        # TODO: log here
+        return _non_authorized_error(
+            'Invalid credentials')
     return _success_image(image)
 
 
-def _error(error_msg):
+def _bad_request_error(error_msg):
     """
-    Helper for fromating error message
+    Helper for formating bad request error message
+    """
+    return _error(error_msg, BAD_REQUEST_ERROR)
+
+def _non_authorized_error(error_msg):
+    """
+    Helper for formating non authorized error message
+    """
+    return _error(error_msg, NON_AUTHORIZED_STATUS_CODE)
+
+def _error(error_msg, status_code):
+    """
+    Helper for formatting error message
     """
     return {
-        'errorMessage': '[Bad Request] %s' % error_msg
-    }
-
+        'statusCode': status_code,
+        'body': error_message}
 
 def _success_image(image):
     """

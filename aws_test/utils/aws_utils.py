@@ -11,7 +11,7 @@ kms = boto3.client('kms')
 
 def store_data_at_s3(data_fileobj, bucket, key_prefix):
     """
-    Generate random key 
+    Generate random key
     Store data at s3 bucket with it.
     """
     s3_data_key = '%s-%s' % (
@@ -22,11 +22,13 @@ def store_data_at_s3(data_fileobj, bucket, key_prefix):
     return s3_data_key
 
 
-def download_data_from_s3(bucket, key):
+def download_data_from_s3(image_s3_client, bucket, key):
     """
-    Wrapper for downloading data from s3 bucket
+    Wrapper for downloading data from s3 bucket.
+    WARNING: access to images should be provided only for
+    valid session keys (incapsulated in image_s3_client)
     """
-    response = s3.get_object(
+    response = image_s3_client.get_object(
         Bucket=bucket, Key=key)
     return response['Body'].read()
 

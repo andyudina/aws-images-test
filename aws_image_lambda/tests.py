@@ -19,10 +19,15 @@ class ImageLambdaHandlerTest(BaseTestCase):
     Test image can be retrieved by handler
     """
 
-    def construct_event_for_handler(self):
+    def construct_event_for_handler(self, **kwargs):
         return {
             'pathParameters': {
-                'bucket_key': self.image_s3_key}
+                'bucket_key': self.image_s3_key,
+            },
+            'headers': {
+                's3-session-token': kwargs.get(
+                    'session_token', self.session_token)
+            }
         }
 
     def construct_context_for_handler(self):
@@ -51,6 +56,18 @@ class ImageLambdaHandlerTest(BaseTestCase):
             response['headers']['Content-Type'],
             JPEG_IMAGE_CONTENT_TYPE)
 
+    def test_retrieve_image_invalid_session(self):
+        """
+        Test expected image returned
+        """
+        response = get_image(
+            self.construct_event_for_handler(
+                session_token='invalid_session_token'),
+            self.construct_context_for_handler())
+        self.assertEqual(
+            'Invalid credentials',
+            response['body'])
+
     def test_retrieve_image__not_passed_bucket_key(self):
         """
         Test client error returned
@@ -58,9 +75,9 @@ class ImageLambdaHandlerTest(BaseTestCase):
         # Lambda sets error code by checking response to regex
         response = get_image(
             {}, self.construct_context_for_handler())
-        self.assertIn(
-            'Bad Request',
-            response['errorMessage'])
+        self.assertEqual(
+            'Not enough credentials to authorize',
+            response['body'])
 
 
 if __name__ == '__main__':

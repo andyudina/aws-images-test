@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
+
     # app for serving image
     'aws_test.apps.api',
     # app for setup environment (upload image& pgp key)
@@ -131,3 +131,5 @@ PGP_KEY_BUCKET = 'pgp-key-bucket-ifkneounb3'
 KMS_KEY_ID = '0b8baec0-69e2-465e-b63b-01926b93c9bb'
 PGP_PUBLIC_KEY_FILEPATH = os.path.join(BASE_DIR, 'pgp_key.pub')
 PGP_S3_KEY = 'gpg-key-67EBKKOPQ7'
+DEFAULT_IMAGE_BUCKET_ARN = 'arn:aws:iam::202913470273:role/lambda_image_test'
+MIN_DURATION_POSSIBLE = 15 * 60 # 15 minutes
