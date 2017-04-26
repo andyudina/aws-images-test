@@ -26,10 +26,13 @@ env
 *jpg
 *zip
 
+# Sensitive
+local.py
+
 # Dirs with production-only content
 media
 dist
 
-# AWS Lamda deploy elated
+# AWS Lamda deploy related
 config.yaml
 deploy.py # yup, wipe this trash out of repo

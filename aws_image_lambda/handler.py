@@ -19,14 +19,20 @@ def get_image(event, context):
     except KeyError:
         return _bad_request_error('No bucket key')
     try:
-        session_token = event['headers']['s3-session-token']
+        session_token= event['headers']['s3-session-token']
+        access_key_id = event['headers']['s3-access-key-id']
+        secret_access_key = event['headers']['s3-access-key']
     except KeyError:
         return _non_authorized_error(
             'Not enough credentials to authorize')
     try:
-        image = SafeImage(session_token).retrieve(bucket_key)
+        image = SafeImage(
+            session_token=session_token,
+            access_key_id=access_key_id,
+            secret_access_key=secret_access_key).retrieve(bucket_key)
     except ClientError as e:
         # TODO: log here
+        print(e)
         return _non_authorized_error(
             'Invalid credentials')
     return _success_image(image)
@@ -50,7 +56,7 @@ def _error(error_msg, status_code):
     """
     return {
         'statusCode': status_code,
-        'body': error_message}
+        'body': error_msg}
 
 def _success_image(image):
     """

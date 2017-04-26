@@ -19,7 +19,7 @@ On endpoint request we decrypt pgp key, get enrypted image from s3 bucket, decry
 ### Roadmap
 + Encrypt image with PGP and store in S3
 + Encrypt PGP key by KMS key and store in anither S3 bucket
-+ Lambda for endpoint 
++ Lambda for endpoint
 - Set up API-GW and deploy lamda
 - Write usage HOW-TO
 - Setuo architecture with Terraform
@@ -29,3 +29,5 @@ On endpoint request we decrypt pgp key, get enrypted image from s3 bucket, decry
 ## AWS Tips
 Use Content-Type and Accept headers to get binary data:
 curl --request GET -H "Accept: image/jpeg" -H "Content-Type: image/jpeg" https://9os3hi1h6c.execute-api.eu-central-1.amazonaws.com/SafeImage/image/image-YVHJMQXU7J  > test.jpeg
+
+To create policy user must be in trusted relationships of role for which the policy is created

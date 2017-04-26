@@ -28,21 +28,25 @@ IMAGE_WIDTH = 100
 COLORS_NUMBER = 3
 COLOR_SCHEMA = 'RGBA'
 
+image_bucket_policy_resource_tmpl = 'arn:aws:s3:::%s/%s'
+
 image_access_policy = \
-"""
 {
-  "Version": "%s",
-  "Statement": [
+  'Version': '2012-10-17',
+  'Statement': [
     {
-      "Effect": "Allow",
-      "Action": [
-        "s3:GetObject",
+      'Effect': 'Allow',
+      'Action': [
+        's3:GetObject'
       ],
-      "Resource": ["arn:aws:s3:::%s/%s"]
+      'Resource': [
+          image_bucket_policy_resource_tmpl
+      ]
     }
   ]
 }
-"""
+
+
 
 class SetupEnvMixin:
     """
@@ -61,11 +65,11 @@ class SetupEnvMixin:
         self.image_s3_key, self.encrypted_image = \
             self.prepare_image(
                 io.BytesIO(self.raw_image), public_key)
-        self.session_token = self.generate_session_token()
+        self.credentials = self.generate_session_credentials()
 
-    def generate_session_token(self):
+    def generate_session_credentials(self):
         """
-        Helper for generating session_token
+        Helper for generating session token, access key and secret
         Uses AssumeRole
         As role takes perdefined string (TODO: how to store)
         Specifies permissions only for current bucket key.
@@ -74,24 +78,29 @@ class SetupEnvMixin:
         only if both policies are matched
         User with one access token can't access others card images
         """
+        import boto3
+
         client = boto3.client('sts')
         response = client.assume_role(
             RoleArn=settings.DEFAULT_IMAGE_BUCKET_ARN,
             RoleSessionName='role-session-name-%s' % self.image_s3_key,
             Policy=self.genearte_policy_for_current_key(),
             DurationSeconds=settings.MIN_DURATION_POSSIBLE)
-        return response['Credentials']['SessionToken']
+        return response['Credentials']
 
-    def genearate_policy_for_current_key():
+    def genearte_policy_for_current_key(self):
         """
         Helper for policy string generation
         """
-        import datetime
+        import json
 
-        return image_access_policy % (
-                datetime.datetime.now().date(),
+        image_bucket_policy_resource = \
+            image_bucket_policy_resource_tmpl % (
                 settings.IMAGE_BUCKET,
                 self.image_s3_key)
+        image_access_policy['Statement'][0]['Resource'][0] = \
+            image_bucket_policy_resource
+        return json.dumps(image_access_policy)
 
     def prepare_key(self, private_key):
         """

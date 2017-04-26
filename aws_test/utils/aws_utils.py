@@ -22,13 +22,14 @@ def store_data_at_s3(data_fileobj, bucket, key_prefix):
     return s3_data_key
 
 
-def download_data_from_s3(image_s3_client, bucket, key):
+def download_data_from_s3(bucket, key, **kwargs):
     """
     Wrapper for downloading data from s3 bucket.
     WARNING: access to images should be provided only for
     valid session keys (incapsulated in image_s3_client)
     """
-    response = image_s3_client.get_object(
+    s3_client = kwargs.get('s3_client', s3)
+    response = s3_client.get_object(
         Bucket=bucket, Key=key)
     return response['Body'].read()
 
@@ -60,6 +61,6 @@ def _test_data_can_be_used_with_kms(data):
     """
     Asserts if data has compatible with KMS API type
     """
-    assert(
-        isinstance(data, bytes) or isinstance(data, str),
-        'Data should be string or bytes type')
+    assert \
+        isinstance(data, bytes) or isinstance(data, str), \
+        'Data should be string or bytes type'
